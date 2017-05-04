@@ -1,6 +1,4 @@
 import com.sun.deploy.util.StringUtils;
-import com.sun.org.apache.xpath.internal.operations.Variable;
-
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
@@ -56,7 +54,6 @@ public class GrammarParser {
 
     static Map<String, ArrayList<String>> firstSet;
     static Map<String, ArrayList<String>> followSet;
-    static Map<String, ArrayList<String>> finalFollowSet;
 
 
     public static boolean parseInput(String[] inputLines, LL1Parser ll1Parser) {
@@ -188,7 +185,7 @@ public class GrammarParser {
                         ArrayList<String> l1 = followSet.get(variable);
                         ArrayList<String> l2 = followSet.get(key);
                         l1.addAll(l2);
-                        followSet.put(variable, l2);
+                        followSet.put(variable, l1);
 
                     } else {
                         String str = "";
@@ -198,13 +195,13 @@ public class GrammarParser {
                                 str += " ";
                             }
                         }
-                        ArrayList<String> follows = getFirst(grammar, str, firstSet);
+                        ArrayList<String> f = getFirst(grammar, str, firstSet);
 
-                        if (follows.contains("")) {
-                            follows.remove("");
-                            ArrayList<String> l1 = followSet.get(variable);
-                            l1.addAll(follows);
-                            followSet.put(variable, l1);
+                        if (f.contains("")) {
+                            f.remove("");
+                            ArrayList<String> followOfVarriable = followSet.get(variable);
+                            followOfVarriable.addAll(f);
+                            followSet.put(variable, followOfVarriable);
 
 
                             if (!followSet.keySet().contains(key)) {
@@ -213,11 +210,11 @@ public class GrammarParser {
                             ArrayList<String> list1 = followSet.get(variable);
                             ArrayList<String> list2 = followSet.get(key);
                             list1.addAll(list2);
-                            followSet.put(variable, list2);
+                            followSet.put(variable, list1);
 
                         } else {
                             ArrayList<String> l1 = followSet.get(variable);
-                            l1.addAll(follows);
+                            l1.addAll(f);
                             followSet.put(variable, l1);
                         }
                     }
@@ -225,26 +222,26 @@ public class GrammarParser {
             }
         }
 
-        ArrayList<String> list = followSet.get(variable);
-
-        ArrayList<String> uniqueElements = new ArrayList<>();
-        for (String s : list) {
-            if (!uniqueElements.contains(s)) {
-                uniqueElements.add(s);
-            }
-        }
-
-        finalFollowSet.put(variable, uniqueElements);
-
     }
 
     public static Map<String, ArrayList<String>> getFollowSet(Grammar grammar) {
 
         followSet = new HashMap<>();
-        finalFollowSet = new HashMap<>();
 
         for (String variable : grammar.variables) {
             addFollows(grammar, variable);
+        }
+
+        Map<String, ArrayList<String>> finalFollowSet = new HashMap<>();
+        for (String variable : grammar.variables) {
+            ArrayList<String> list = followSet.get(variable);
+            ArrayList<String> uniqueElements = new ArrayList<>();
+            for (String s : list) {
+                if (!uniqueElements.contains(s)) {
+                    uniqueElements.add(s);
+                }
+            }
+            finalFollowSet.put(variable, uniqueElements);
         }
 
         return finalFollowSet;
@@ -415,10 +412,7 @@ public class GrammarParser {
             String[] lines = list.toArray(new String[0]);
 
             Grammar grammar = constructGrammar(lines);
-            printGrammar(grammar);
-
             LL1Parser ll1Parser = constructLL1Parser(grammar);
-            System.out.println("LL1 parsing Table: " + ll1Parser.ll1ParsingTable);
 
             br = new BufferedReader(new FileReader(inputFileName));
             list = new ArrayList<>();

@@ -1,0 +1,27 @@
+PLDI Project: LL(1) Grammar Parser
+Name: Deva Surya Vivek Madala
+
+The program takes two arguments: files containing Grammar and input string
+
+Example Grammar:
+E -> T X
+T -> ( E ) | int Y
+X -> + E |
+Y -> * T |
+
+Example Input:
+( int + int )
+
+The Program constructs the Grammar object according to the input Grammar.
+The Grammar object has 'start', 'variables', 'terminals', 'first', 'follow'.
+The program then constructs the parser object.
+The LL1 parser object contains fields: Grammar and the LL1 parsing table
+The given input is then parsed using the constructed Parser
+
+Commands to run: (file1.txt contains grammar and file2.txt contains input)
+javac GrammarParser.java
+java GrammarParser file1.txt file2.txt
+
+
+
+
