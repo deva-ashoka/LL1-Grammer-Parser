@@ -1,4 +1,5 @@
 import com.sun.deploy.util.StringUtils;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.util.*;
@@ -12,6 +13,7 @@ class Grammar {
     Map<String, Map<String, ArrayList<String>>> first;
     Map<String, ArrayList<String>> follow;
 
+    //constructor for Grammar
     public Grammar() {
         this.start = "";
         this.variables = new ArrayList<>();
@@ -21,6 +23,7 @@ class Grammar {
         this.follow = new HashMap<>();
     }
 
+    //adds a production to a variable
     public void addProduction(String v, String p) {
         ArrayList<String> l = this.productions.get(v);
         if (l == null) {
@@ -30,6 +33,7 @@ class Grammar {
         l.add(p);
     }
 
+    //returns all the productions of a particualr variable
     public ArrayList<String> getAllProductionsForVariable(String v) {
         if (this.productions.get(v) == null) {
             return new ArrayList<>();
@@ -43,6 +47,7 @@ class LL1Parser {
     Grammar grammar = new Grammar();
     Map<String, Map<String, String>> ll1ParsingTable;
 
+    //constructor for the parser
     public LL1Parser() {
         this.grammar = new Grammar();
         this.ll1ParsingTable = new HashMap<>();
@@ -60,29 +65,37 @@ public class GrammarParser {
 
         for (int i = 0; i < inputLines.length; i++) {
 
+            //break each input into tokens
             List<String> inputTokensList = Arrays.asList(inputLines[i].split("\\s"));
             ArrayList<String> inputTokens = new ArrayList<>();
             for (String s : inputTokensList) {
                 inputTokens.add(s);
             }
 
+            //append the stack with dollar first
             Stack<String> stack = new Stack<>();
             stack.add("$");
+
             stack.add(ll1Parser.grammar.start);
             inputTokens.add("$");
 
+            //get the next token and remove it
             String nextToken = inputTokens.get(0);
             inputTokens.remove(0);
 
             while (!stack.isEmpty() && nextToken != null) {
 
+                //get the variable
                 String v = stack.pop();
 
+                //only if v is a variable, proceed
                 if (ll1Parser.grammar.variables.contains(v)) {
+                    //get the value for the token from the table
                     String p = ll1Parser.ll1ParsingTable.get(v).get(nextToken);
                     if (p == null) {
                         return false;
                     }
+                    //get the production and add the production elements to the stack
                     if (!p.equals("")) {
                         List<String> pTokens = Arrays.asList(p.split("\\s"));
                         Collections.reverse(pTokens);
@@ -93,6 +106,7 @@ public class GrammarParser {
                 } else {
                     if (nextToken.equals(v)) {
                         if (!inputTokens.isEmpty()) {
+                            //get the next token and remove it from input
                             nextToken = inputTokens.get(0);
                             inputTokens.remove(0);
                         }
@@ -110,12 +124,15 @@ public class GrammarParser {
 
 
     public static LL1Parser constructLL1Parser(Grammar grammar) {
+
         LL1Parser ll1Parser = new LL1Parser();
         ll1Parser.grammar = grammar;
 
         Map<String, Map<String, String>> ll1ParsingTable = new HashMap<>();
 
         Map<String, Map<String, ArrayList<String>>> first = grammar.first;
+
+        //initialize the table for every variable
         for (String variable : first.keySet()) {
             ll1ParsingTable.put(variable, new HashMap<>());
 
@@ -124,10 +141,12 @@ public class GrammarParser {
             for (String prodRule : firstOfVar.keySet()) {
                 ArrayList<String> terms = firstOfVar.get(prodRule);
 
+                //check if the term is there in the keys of variable (error)
                 for (String term : terms) {
                     if (ll1ParsingTable.get(variable).containsKey(term)) {
                         System.out.println("Error. Given grammar is not LL1");
                     }
+                    //add the rule to the term for the variable
                     if (!prodRule.equals("")) {
                         ll1ParsingTable.get(variable).put(term, prodRule);
                     }
@@ -154,6 +173,7 @@ public class GrammarParser {
 
     public static void addFollows(Grammar grammar, String variable) {
 
+        //initialise the follow set for the variable
         followSet.put(variable, new ArrayList<>());
 
         if (grammar.start.equals(variable)) {
@@ -164,6 +184,7 @@ public class GrammarParser {
 
         Map<String, ArrayList<String>> productions = grammar.productions;
 
+        //for each production, for each rule, get the follow
         for (String key : productions.keySet()) {
             ArrayList<String> productionRules = productions.get(key);
             for (String prodRule : productionRules) {
@@ -179,9 +200,11 @@ public class GrammarParser {
 
                 for (Integer index : indices) {
                     if (index == elements.length - 1) {
+                        //if the follow set of the var is not done, do it first
                         if (!followSet.keySet().contains(key)) {
                             addFollows(grammar, key);
                         }
+                        //add all th follows of the production to variable
                         ArrayList<String> l1 = followSet.get(variable);
                         ArrayList<String> l2 = followSet.get(key);
                         l1.addAll(l2);
@@ -195,18 +218,20 @@ public class GrammarParser {
                                 str += " ";
                             }
                         }
-                        ArrayList<String> f = getFirst(grammar, str, firstSet);
+                        ArrayList<String> firsts = getFirst(grammar, str, firstSet);
 
-                        if (f.contains("")) {
-                            f.remove("");
+                        //if the first of the string -> epsilon, then add the follow of the var to follow of thr variable
+                        if (firsts.contains("")) {
+                            firsts.remove("");
                             ArrayList<String> followOfVarriable = followSet.get(variable);
-                            followOfVarriable.addAll(f);
+                            followOfVarriable.addAll(firsts);
                             followSet.put(variable, followOfVarriable);
 
 
                             if (!followSet.keySet().contains(key)) {
                                 addFollows(grammar, key);
                             }
+                            //add all th follows of the production to variable
                             ArrayList<String> list1 = followSet.get(variable);
                             ArrayList<String> list2 = followSet.get(key);
                             list1.addAll(list2);
@@ -214,7 +239,7 @@ public class GrammarParser {
 
                         } else {
                             ArrayList<String> l1 = followSet.get(variable);
-                            l1.addAll(f);
+                            l1.addAll(firsts);
                             followSet.put(variable, l1);
                         }
                     }
@@ -232,6 +257,7 @@ public class GrammarParser {
             addFollows(grammar, variable);
         }
 
+        //remove duplicates from the follow set of each variable
         Map<String, ArrayList<String>> finalFollowSet = new HashMap<>();
         for (String variable : grammar.variables) {
             ArrayList<String> list = followSet.get(variable);
@@ -248,6 +274,7 @@ public class GrammarParser {
 
     }
 
+    //returns the first for a given string
     public static ArrayList<String> getFirst(Grammar grammar, String str, Map<String, ArrayList<String>> firstSet) {
 
         ArrayList<String> retList = new ArrayList<>();
@@ -269,17 +296,22 @@ public class GrammarParser {
 
         if (!(firstSet.containsKey(variable))) {
 
-
+            //get all the productions for the variable
             ArrayList<String> productions = grammar.getAllProductionsForVariable(variable);
+
+            //initialise the first set of the variable
             firstSet.put(variable, new ArrayList<>());
 
+            //for each production, get the first terminal and add it the the first set
             for (String p : productions) {
                 String[] elements = p.split("\\s");
                 for (String e : elements) {
+                    //recursively add the first terminal
                     addFirstSetOfVar(grammar, e);
                     ArrayList<String> l1 = firstSet.get(variable);
                     ArrayList<String> l2 = firstSet.get(e);
                     l1.addAll(l2);
+                    //if e is a terminal or if e does not -> epsilon, then break
                     if (grammar.terminals.contains(e) || (!grammar.getAllProductionsForVariable(e).contains(""))) {
                         break;
                     }
@@ -300,12 +332,14 @@ public class GrammarParser {
             firstSet.put(terminal, l);
         }
 
+        //for every variable, get the first set
         for (String variable : grammar.variables) {
             if (!firstSet.containsKey(variable)) {
                 addFirstSetOfVar(grammar, variable);
             }
         }
 
+        //remove the duplications in the first sets
         for (String f : firstSet.keySet()) {
             List<String> l = firstSet.get(f);
             l = l.stream().distinct().collect(Collectors.toList());
@@ -341,16 +375,21 @@ public class GrammarParser {
         int numOfRules = rules.length;
 
         for (int i = 0; i < numOfRules; i++) {
+
+            //split each rule by '->'
             String[] ruleTokens = rules[i].split("\\s->\\s");
 
+            //left of the rule is variable, add it to the variables of grammar
             String variable = ruleTokens[0];
             if (!grammar.variables.contains(variable)) {
                 grammar.variables.add(variable);
             }
             String rightToken = ruleTokens[1];
 
+            //split the right side of the rule by "|" to get all productions
             ruleTokens = StringUtils.splitString(ruleTokens[1], "|");
             int count = 0;
+            //check for Variable -> epsilon.
             for (char c : rightToken.toCharArray()) {
                 if (c == '|') {
                     count++;
@@ -369,6 +408,7 @@ public class GrammarParser {
                 ruleTokens[l] = ruleTokens[l].trim();
             }
 
+            //link all the possible productions to the variable
             for (int j = 0; j < ruleTokens.length; j++) {
                 String production = ruleTokens[j];
                 grammar.addProduction(variable, production);
@@ -383,6 +423,7 @@ public class GrammarParser {
 
             }
 
+            //if an element is in variables and terminals, remove it from terminals
             for (String var : grammar.variables) {
                 if (grammar.terminals.contains(var)) {
                     grammar.terminals.remove(var);
@@ -390,6 +431,7 @@ public class GrammarParser {
             }
 
         }
+        //set the first variable to start variable
         grammar.start = grammar.variables.get(0);
         grammar.first = getFirstSet(grammar);
         grammar.follow = getFollowSet(grammar);
@@ -398,7 +440,9 @@ public class GrammarParser {
 
     public static void main(String[] args) {
         try {
+            //first arguments is the file in which the grammar is present
             String grammarFileName = args[0];
+            //second file: input strings
             String inputFileName = args[1];
             BufferedReader br = new BufferedReader(new FileReader(grammarFileName));
             String line;
@@ -411,7 +455,10 @@ public class GrammarParser {
 
             String[] lines = list.toArray(new String[0]);
 
+            //construct the grammar objectt
             Grammar grammar = constructGrammar(lines);
+
+            //construct the parser object
             LL1Parser ll1Parser = constructLL1Parser(grammar);
 
             br = new BufferedReader(new FileReader(inputFileName));
@@ -422,6 +469,8 @@ public class GrammarParser {
             br.close();
 
             String[] inputLines = list.toArray(new String[0]);
+
+            //parse the input
             boolean result = parseInput(inputLines, ll1Parser);
             System.out.println("Parse result: " + result);
 
