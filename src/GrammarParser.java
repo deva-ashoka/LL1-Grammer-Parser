@@ -457,9 +457,11 @@ public class GrammarParser {
 
             //construct the grammar objectt
             Grammar grammar = constructGrammar(lines);
+            printGrammar(grammar);
 
             //construct the parser object
             LL1Parser ll1Parser = constructLL1Parser(grammar);
+            System.out.println("Table: " + ll1Parser.ll1ParsingTable);
 
             br = new BufferedReader(new FileReader(inputFileName));
             list = new ArrayList<>();
